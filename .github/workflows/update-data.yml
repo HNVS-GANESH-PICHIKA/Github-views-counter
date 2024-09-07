@@ -13,19 +13,17 @@ jobs:
     - name: Use Node.js
       uses: actions/setup-node@v2
       with:
-        node-version: '16'  # Updated to a more recent version
+        node-version: '16'
     - name: Install dependencies
-      run: npm install node-fetch@2  # Specify version 2 of node-fetch
-    - name: Update data
-      env:
-        GITHUB_TOKEN: ${{ secrets.PAT }}  # Use the PAT instead of GITHUB_TOKEN
+      run: npm install node-fetch@2
+    - name: Create update script
       run: |
-        node << EOF
+        cat << EOF > update-data.js
         const fetch = require('node-fetch');
         const fs = require('fs').promises;
 
         async function fetchData() {
-          const username = '${{ github.repository_owner }}';
+          const username = process.env.GITHUB_REPOSITORY_OWNER;
           const apiUrl = `https://api.github.com/users/${username}/repos`;
 
           const response = await fetch(apiUrl, {
@@ -57,6 +55,10 @@ jobs:
 
         fetchData().catch(console.error);
         EOF
+    - name: Update data
+      env:
+        GITHUB_TOKEN: ${{ secrets.PAT }}
+      run: node update-data.js
     - name: Commit and push if changed
       run: |
         git config --global user.email "action@github.com"
