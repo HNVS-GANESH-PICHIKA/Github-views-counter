@@ -1,66 +1,66 @@
 name: Update Repository Data
 
-   on:
-     schedule:
-       - cron: '0 0 * * *'  # Runs daily at midnight UTC
-     workflow_dispatch:  # Allows manual triggering
+on:
+  schedule:
+    - cron: '0 0 * * *'  # Runs daily at midnight UTC
+  workflow_dispatch:  # Allows manual triggering
 
-   jobs:
-     update-data:
-       runs-on: ubuntu-latest
-       steps:
-       - uses: actions/checkout@v2
-       - name: Use Node.js
-         uses: actions/setup-node@v2
-         with:
-           node-version: '16'  # Updated to a more recent version
-       - name: Install dependencies
-         run: npm install node-fetch@2  # Specify version 2 of node-fetch
-       - name: Update data
-         env:
-           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-         run: |
-           node << EOF
-           const fetch = require('node-fetch');
-           const fs = require('fs').promises;
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Use Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: '16'  # Updated to a more recent version
+    - name: Install dependencies
+      run: npm install node-fetch@2  # Specify version 2 of node-fetch
+    - name: Update data
+      env:
+        GITHUB_TOKEN: ${{ secrets.PAT }}  # Use the PAT instead of GITHUB_TOKEN
+      run: |
+        node << EOF
+        const fetch = require('node-fetch');
+        const fs = require('fs').promises;
 
-           async function fetchData() {
-             const username = '${{ github.repository_owner }}';
-             const apiUrl = `https://api.github.com/users/${username}/repos`;
+        async function fetchData() {
+          const username = '${{ github.repository_owner }}';
+          const apiUrl = `https://api.github.com/users/${username}/repos`;
 
-             const response = await fetch(apiUrl, {
-               headers: {
-                 'Authorization': `token ${process.env.GITHUB_TOKEN}`
-               }
-             });
-             const repos = await response.json();
+          const response = await fetch(apiUrl, {
+            headers: {
+              'Authorization': `token ${process.env.GITHUB_TOKEN}`
+            }
+          });
+          const repos = await response.json();
 
-             const viewsPromises = repos.map(repo => 
-               fetch(`https://api.github.com/repos/${username}/${repo.name}/traffic/views`, {
-                 headers: {
-                   'Authorization': `token ${process.env.GITHUB_TOKEN}`
-                 }
-               }).then(res => res.json())
-             );
+          const viewsPromises = repos.map(repo => 
+            fetch(`https://api.github.com/repos/${username}/${repo.name}/traffic/views`, {
+              headers: {
+                'Authorization': `token ${process.env.GITHUB_TOKEN}`
+              }
+            }).then(res => res.json())
+          );
 
-             const viewsData = await Promise.all(viewsPromises);
+          const viewsData = await Promise.all(viewsPromises);
 
-             const repoData = repos.map((repo, index) => ({
-               name: repo.name,
-               lastUpdated: new Date(repo.updated_at).toLocaleDateString(),
-               unique: viewsData[index].uniques,
-               views: viewsData[index].count
-             }));
+          const repoData = repos.map((repo, index) => ({
+            name: repo.name,
+            lastUpdated: new Date(repo.updated_at).toLocaleDateString(),
+            unique: viewsData[index].uniques,
+            views: viewsData[index].count
+          }));
 
-             await fs.writeFile('repoData.json', JSON.stringify(repoData, null, 2));
-           }
+          await fs.writeFile('repoData.json', JSON.stringify(repoData, null, 2));
+        }
 
-           fetchData().catch(console.error);
-           EOF
-       - name: Commit and push if changed
-         run: |
-           git config --global user.email "action@github.com"
-           git config --global user.name "GitHub Action"
-           git add repoData.json
-           git commit -m "Update repository data" || exit 0
-           git push
+        fetchData().catch(console.error);
+        EOF
+    - name: Commit and push if changed
+      run: |
+        git config --global user.email "action@github.com"
+        git config --global user.name "GitHub Action"
+        git add repoData.json
+        git commit -m "Update repository data" || exit 0
+        git push
