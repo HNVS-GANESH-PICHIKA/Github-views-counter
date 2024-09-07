@@ -18,43 +18,41 @@ jobs:
       run: npm install node-fetch@2
     - name: Create update script
       run: |
-        cat << EOF > update-data.js
-        const fetch = require('node-fetch');
-        const fs = require('fs').promises;
-
-        async function fetchData() {
-          const username = process.env.GITHUB_REPOSITORY_OWNER;
-          const apiUrl = `https://api.github.com/users/${username}/repos`;
-
-          const response = await fetch(apiUrl, {
-            headers: {
-              'Authorization': `token ${process.env.GITHUB_TOKEN}`
-            }
-          });
-          const repos = await response.json();
-
-          const viewsPromises = repos.map(repo => 
-            fetch(`https://api.github.com/repos/${username}/${repo.name}/traffic/views`, {
-              headers: {
-                'Authorization': `token ${process.env.GITHUB_TOKEN}`
-              }
-            }).then(res => res.json())
-          );
-
-          const viewsData = await Promise.all(viewsPromises);
-
-          const repoData = repos.map((repo, index) => ({
-            name: repo.name,
-            lastUpdated: new Date(repo.updated_at).toLocaleDateString(),
-            unique: viewsData[index].uniques,
-            views: viewsData[index].count
-          }));
-
-          await fs.writeFile('repoData.json', JSON.stringify(repoData, null, 2));
-        }
-
-        fetchData().catch(console.error);
-        EOF
+        echo "const fetch = require('node-fetch');" > update-data.js
+        echo "const fs = require('fs').promises;" >> update-data.js
+        echo "" >> update-data.js
+        echo "async function fetchData() {" >> update-data.js
+        echo "  const username = process.env.GITHUB_REPOSITORY_OWNER;" >> update-data.js
+        echo "  const apiUrl = \`https://api.github.com/users/\${username}/repos\`;" >> update-data.js
+        echo "" >> update-data.js
+        echo "  const response = await fetch(apiUrl, {" >> update-data.js
+        echo "    headers: {" >> update-data.js
+        echo "      'Authorization': \`token \${process.env.GITHUB_TOKEN}\`" >> update-data.js
+        echo "    }" >> update-data.js
+        echo "  });" >> update-data.js
+        echo "  const repos = await response.json();" >> update-data.js
+        echo "" >> update-data.js
+        echo "  const viewsPromises = repos.map(repo => " >> update-data.js
+        echo "    fetch(\`https://api.github.com/repos/\${username}/\${repo.name}/traffic/views\`, {" >> update-data.js
+        echo "      headers: {" >> update-data.js
+        echo "        'Authorization': \`token \${process.env.GITHUB_TOKEN}\`" >> update-data.js
+        echo "      }" >> update-data.js
+        echo "    }).then(res => res.json())" >> update-data.js
+        echo "  );" >> update-data.js
+        echo "" >> update-data.js
+        echo "  const viewsData = await Promise.all(viewsPromises);" >> update-data.js
+        echo "" >> update-data.js
+        echo "  const repoData = repos.map((repo, index) => ({" >> update-data.js
+        echo "    name: repo.name," >> update-data.js
+        echo "    lastUpdated: new Date(repo.updated_at).toLocaleDateString()," >> update-data.js
+        echo "    unique: viewsData[index].uniques," >> update-data.js
+        echo "    views: viewsData[index].count" >> update-data.js
+        echo "  }));" >> update-data.js
+        echo "" >> update-data.js
+        echo "  await fs.writeFile('repoData.json', JSON.stringify(repoData, null, 2));" >> update-data.js
+        echo "}" >> update-data.js
+        echo "" >> update-data.js
+        echo "fetchData().catch(console.error);" >> update-data.js
     - name: Update data
       env:
         GITHUB_TOKEN: ${{ secrets.PAT }}
