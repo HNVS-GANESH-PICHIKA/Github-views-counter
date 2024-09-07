@@ -8,18 +8,45 @@ const GitHubRepoViewsCounter = () => {
   const [activeIndex, setActiveIndex] = useState(null);
 
   useEffect(() => {
-    // TODO: Replace this with actual API call
-    const simulatedData = [
-      { name: 'android-vpn-client', lastUpdated: '2024/9/4', unique: 56892, views: 226698 },
-      { name: 'openvpn-install', lastUpdated: '2024/9/3', unique: 6910, views: 13164 },
-      { name: 'top-github-users', lastUpdated: '2024/9/2', unique: 7276, views: 17699 },
-      { name: 'github-users', lastUpdated: '2024/9/1', unique: 317064, views: 918294 },
-      { name: 'profile-views-counter', lastUpdated: '2024/8/31', unique: 441, views: 2542 },
-    ];
+    const fetchData = async () => {
+      const token = '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';
+      const username = 'HNVS-GANESH-PICHIKA';
+      const apiUrl = `https://api.github.com/users/${username}/repos`;
 
-    setRepos(simulatedData);
-    setTotalViews(simulatedData.reduce((sum, repo) => sum + repo.views, 0));
-    setTotalUniqueViews(simulatedData.reduce((sum, repo) => sum + repo.unique, 0));
+      try {
+        const response = await fetch(apiUrl, {
+          headers: {
+            'Authorization': `token ${token}`
+          }
+        });
+        const repos = await response.json();
+
+        const viewsPromises = repos.map(repo => 
+          fetch(`https://api.github.com/repos/${username}/${repo.name}/traffic/views`, {
+            headers: {
+              'Authorization': `token ${token}`
+            }
+          }).then(res => res.json())
+        );
+
+        const viewsData = await Promise.all(viewsPromises);
+
+        const repoData = repos.map((repo, index) => ({
+          name: repo.name,
+          lastUpdated: new Date(repo.updated_at).toLocaleDateString(),
+          unique: viewsData[index].uniques,
+          views: viewsData[index].count
+        }));
+
+        setRepos(repoData);
+        setTotalViews(repoData.reduce((sum, repo) => sum + repo.views, 0));
+        setTotalUniqueViews(repoData.reduce((sum, repo) => sum + repo.unique, 0));
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+    };
+
+    fetchData();
   }, []);
 
   // ... rest of the component code ...
