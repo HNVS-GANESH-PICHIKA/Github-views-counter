@@ -8,45 +8,14 @@ const GitHubRepoViewsCounter = () => {
   const [activeIndex, setActiveIndex] = useState(null);
 
   useEffect(() => {
-    const fetchData = async () => {
-      const token = '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';
-      const username = 'HNVS-GANESH-PICHIKA';
-      const apiUrl = `https://api.github.com/users/${username}/repos`;
-
-      try {
-        const response = await fetch(apiUrl, {
-          headers: {
-            'Authorization': `token ${token}`
-          }
-        });
-        const repos = await response.json();
-
-        const viewsPromises = repos.map(repo => 
-          fetch(`https://api.github.com/repos/${username}/${repo.name}/traffic/views`, {
-            headers: {
-              'Authorization': `token ${token}`
-            }
-          }).then(res => res.json())
-        );
-
-        const viewsData = await Promise.all(viewsPromises);
-
-        const repoData = repos.map((repo, index) => ({
-          name: repo.name,
-          lastUpdated: new Date(repo.updated_at).toLocaleDateString(),
-          unique: viewsData[index].uniques,
-          views: viewsData[index].count
-        }));
-
-        setRepos(repoData);
-        setTotalViews(repoData.reduce((sum, repo) => sum + repo.views, 0));
-        setTotalUniqueViews(repoData.reduce((sum, repo) => sum + repo.unique, 0));
-      } catch (error) {
-        console.error('Error fetching data:', error);
-      }
-    };
-
-    fetchData();
+    fetch('repoData.json')
+      .then(response => response.json())
+      .then(data => {
+        setRepos(data);
+        setTotalViews(data.reduce((sum, repo) => sum + repo.views, 0));
+        setTotalUniqueViews(data.reduce((sum, repo) => sum + repo.unique, 0));
+      })
+      .catch(error => console.error('Error fetching data:', error));
   }, []);
 
   // ... rest of the component code ...
